@@ -119,6 +119,9 @@ func (w *SSEWriter) WriteEventWithType(ctx context.Context, writer io.Writer, ev
 			return fmt.Errorf("SSE flush failed: %w", err)
 		}
 	}
+	if flusher, ok := writer.(flusherWithoutError); ok {
+		flusher.Flush()
+	}
 
 	return nil
 }
