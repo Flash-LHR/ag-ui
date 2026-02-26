@@ -34,12 +34,39 @@ const (
 	EventTypeStepStarted        EventType = "STEP_STARTED"
 	EventTypeStepFinished       EventType = "STEP_FINISHED"
 
-	// Thinking events for reasoning phase support
-	EventTypeThinkingStart              EventType = "THINKING_START"
-	EventTypeThinkingEnd                EventType = "THINKING_END"
-	EventTypeThinkingTextMessageStart   EventType = "THINKING_TEXT_MESSAGE_START"
+	// Thinking events are kept for backward compatibility.
+	// Deprecated: Use the REASONING_* event types instead.
+	// EventTypeThinkingStart indicates the start of a thinking phase.
+	// Deprecated: Use EventTypeReasoningStart instead.
+	EventTypeThinkingStart EventType = "THINKING_START"
+	// EventTypeThinkingEnd indicates the end of a thinking phase.
+	// Deprecated: Use EventTypeReasoningEnd instead.
+	EventTypeThinkingEnd EventType = "THINKING_END"
+	// EventTypeThinkingTextMessageStart indicates the start of a thinking text message.
+	// Deprecated: Use EventTypeReasoningMessageStart instead.
+	EventTypeThinkingTextMessageStart EventType = "THINKING_TEXT_MESSAGE_START"
+	// EventTypeThinkingTextMessageContent contains streaming thinking text content.
+	// Deprecated: Use EventTypeReasoningMessageContent instead.
 	EventTypeThinkingTextMessageContent EventType = "THINKING_TEXT_MESSAGE_CONTENT"
-	EventTypeThinkingTextMessageEnd     EventType = "THINKING_TEXT_MESSAGE_END"
+	// EventTypeThinkingTextMessageEnd indicates the end of a thinking text message.
+	// Deprecated: Use EventTypeReasoningMessageEnd instead.
+	EventTypeThinkingTextMessageEnd EventType = "THINKING_TEXT_MESSAGE_END"
+
+	// Reasoning events support the reasoning message lifecycle.
+	// EventTypeReasoningStart marks the start of a reasoning phase.
+	EventTypeReasoningStart              EventType = "REASONING_START"
+	// EventTypeReasoningMessageStart signals the start of a reasoning message.
+	EventTypeReasoningMessageStart       EventType = "REASONING_MESSAGE_START"
+	// EventTypeReasoningMessageContent represents a chunk of reasoning message content.
+	EventTypeReasoningMessageContent     EventType = "REASONING_MESSAGE_CONTENT"
+	// EventTypeReasoningMessageEnd signals the end of a reasoning message.
+	EventTypeReasoningMessageEnd         EventType = "REASONING_MESSAGE_END"
+	// EventTypeReasoningMessageChunk is a convenience event that streams reasoning message chunks.
+	EventTypeReasoningMessageChunk       EventType = "REASONING_MESSAGE_CHUNK"
+	// EventTypeReasoningEnd marks the end of a reasoning phase.
+	EventTypeReasoningEnd                EventType = "REASONING_END"
+	// EventTypeReasoningEncryptedValue attaches an encrypted reasoning value.
+	EventTypeReasoningEncryptedValue     EventType = "REASONING_ENCRYPTED_VALUE"
 
 	// EventTypeUnknown represents an unrecognized event type
 	EventTypeUnknown EventType = "UNKNOWN"
@@ -73,6 +100,13 @@ var validEventTypes = map[EventType]bool{
 	EventTypeThinkingTextMessageStart:   true,
 	EventTypeThinkingTextMessageContent: true,
 	EventTypeThinkingTextMessageEnd:     true,
+	EventTypeReasoningStart:             true,
+	EventTypeReasoningMessageStart:      true,
+	EventTypeReasoningMessageContent:    true,
+	EventTypeReasoningMessageEnd:        true,
+	EventTypeReasoningMessageChunk:      true,
+	EventTypeReasoningEnd:               true,
+	EventTypeReasoningEncryptedValue:    true,
 }
 
 // Event defines the common interface for all AG-UI events
@@ -403,6 +437,20 @@ func EventFromJSON(data []byte) (Event, error) {
 		event = &RawEvent{}
 	case EventTypeCustom:
 		event = &CustomEvent{}
+	case EventTypeReasoningStart:
+		event = &ReasoningStartEvent{}
+	case EventTypeReasoningMessageStart:
+		event = &ReasoningMessageStartEvent{}
+	case EventTypeReasoningMessageContent:
+		event = &ReasoningMessageContentEvent{}
+	case EventTypeReasoningMessageEnd:
+		event = &ReasoningMessageEndEvent{}
+	case EventTypeReasoningMessageChunk:
+		event = &ReasoningMessageChunkEvent{}
+	case EventTypeReasoningEnd:
+		event = &ReasoningEndEvent{}
+	case EventTypeReasoningEncryptedValue:
+		event = &ReasoningEncryptedValueEvent{}
 	default:
 		return nil, fmt.Errorf("unknown event type: %s", base.Type)
 	}
