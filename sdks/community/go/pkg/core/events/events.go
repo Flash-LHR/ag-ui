@@ -6,11 +6,10 @@ import (
 	"time"
 )
 
-// EventType represents the type of AG-UI event
+// EventType represents the type of AG-UI event.
 type EventType string
 
-// AG-UI Event Type constants - matching the protocol specification
-// TODO: Verify nothing has been hallucinated here
+// Event type constants match the AG-UI protocol specification.
 const (
 	EventTypeTextMessageStart   EventType = "TEXT_MESSAGE_START"
 	EventTypeTextMessageContent EventType = "TEXT_MESSAGE_CONTENT"
@@ -235,6 +234,7 @@ func ValidateSequence(events []Event) error {
 	// Track active runs, messages, tool calls, and steps
 	activeRuns := make(map[string]bool)
 	activeMessages := make(map[string]bool)
+	activeReasoningMessages := make(map[string]bool)
 	activeToolCalls := make(map[string]bool)
 	activeSteps := make(map[string]bool)
 	finishedRuns := make(map[string]bool)
@@ -317,6 +317,9 @@ func ValidateSequence(events []Event) error {
 				delete(activeMessages, msgEvent.MessageID)
 			}
 
+		case EventTypeTextMessageChunk:
+			// Chunk events are always valid in sequence context.
+
 		case EventTypeToolCallStart:
 			if toolEvent, ok := event.(*ToolCallStartEvent); ok {
 				if activeToolCalls[toolEvent.ToolCallID] {
@@ -340,6 +343,50 @@ func ValidateSequence(events []Event) error {
 				}
 				delete(activeToolCalls, toolEvent.ToolCallID)
 			}
+
+		case EventTypeToolCallChunk:
+			// Chunk events are always valid in sequence context.
+
+		case EventTypeToolCallResult:
+			// Tool call result events are always valid in sequence context.
+
+		case EventTypeThinkingStart, EventTypeThinkingEnd, EventTypeThinkingTextMessageStart, EventTypeThinkingTextMessageContent, EventTypeThinkingTextMessageEnd:
+			// Thinking events are always valid in sequence context.
+
+		case EventTypeReasoningStart:
+			// Reasoning events are always valid in sequence context.
+
+		case EventTypeReasoningMessageStart:
+			if msgEvent, ok := event.(*ReasoningMessageStartEvent); ok {
+				if activeReasoningMessages[msgEvent.MessageID] {
+					return fmt.Errorf("reasoning message %s already started", msgEvent.MessageID)
+				}
+				activeReasoningMessages[msgEvent.MessageID] = true
+			}
+
+		case EventTypeReasoningMessageContent:
+			if msgEvent, ok := event.(*ReasoningMessageContentEvent); ok {
+				if !activeReasoningMessages[msgEvent.MessageID] {
+					return fmt.Errorf("cannot add content to reasoning message %s that was not started", msgEvent.MessageID)
+				}
+			}
+
+		case EventTypeReasoningMessageEnd:
+			if msgEvent, ok := event.(*ReasoningMessageEndEvent); ok {
+				if !activeReasoningMessages[msgEvent.MessageID] {
+					return fmt.Errorf("cannot end reasoning message %s that was not started", msgEvent.MessageID)
+				}
+				delete(activeReasoningMessages, msgEvent.MessageID)
+			}
+
+		case EventTypeReasoningMessageChunk:
+			// Chunk events are always valid in sequence context.
+
+		case EventTypeReasoningEncryptedValue:
+			// Encrypted value events are always valid in sequence context.
+
+		case EventTypeReasoningEnd:
+			// Reasoning events are always valid in sequence context.
 
 		case EventTypeStateSnapshot:
 			// State snapshot events are always valid in sequence context
